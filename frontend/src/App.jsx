@@ -9,6 +9,7 @@ import Toast from './components/Toast';
 import AlarmBanner from './components/AlarmBanner';
 import { useSSE } from './hooks/useSSE';
 import { useAlarm } from './hooks/useAlarm';
+import { createEventSource } from './api';
 
 export const AppContext = createContext({});
 export const useApp = () => useContext(AppContext);
@@ -55,11 +56,32 @@ export default function App() {
     },
   });
 
-  // ── Request notification permission on login ───────────────────────────────
-  useEffect(() => {
-    if (user) requestNotificationPermission();
-  }, [user]);
+useEffect(() => {
+  if (!user) return;
 
+  const es = createEventSource();
+
+  es.onopen = () => console.log("🔔 Alert system connected");
+
+  es.onmessage = e => {
+    const data = JSON.parse(e.data);
+    console.log("📩 Alert received:", data);
+
+    // Show browser notification
+    if (Notification.permission === "granted") {
+      new Notification("PillPal Reminder", {
+        body: data.message || "Time to take your medicine",
+        icon: "/pill.svg"
+      });
+    }
+  };
+
+  es.onerror = err => {
+    console.error("❌ Alert error:", err);
+  };
+
+  return () => es.close();
+}, [user]);
   // ── Auth helpers ───────────────────────────────────────────────────────────
   const login = (token, userData) => {
     localStorage.setItem('pillpal_token', token);
