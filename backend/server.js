@@ -316,16 +316,21 @@ app.get('/api/health', (req, res) => {
 // ─── START SERVER ─────────────────────────────────────────────────────────────
 dbModule.initDB()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`\n💊 PillPal Backend running on http://localhost:${PORT}`);
+    app.listen(PORT, '0.0.0.0', () => {
+      console.log(`\n💊 PillPal Backend running on port ${PORT}`);
       console.log(`📡 API available at http://localhost:${PORT}/api`);
+      const msUntil = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
+      setTimeout(() => {
+        runScheduler();
+        setInterval(runScheduler, 60000);
+        console.log('⏱️  Auto-dispense scheduler started');
+      }, msUntil);
     });
   })
   .catch(err => {
     console.error('❌ Failed to initialise database:', err);
     process.exit(1);
   });
-
 // ─── PATCH LOG STATUS ─────────────────────────────────────────────────────────
 app.patch('/api/logs/:id', auth, (req, res) => {
   const { status } = req.body;
@@ -413,10 +418,6 @@ function runScheduler() {
     pushEvent(s.user_id, 'dispensed', { log, medication: { name: s.medication_name, dosage: s.dosage, unit: s.unit, color: s.color }, compartment: s.compartment });
   }
 }
-
-// Align to the top of each minute
-const msUntil = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
-setTimeout(() => { runScheduler(); setInterval(runScheduler, 60000); console.log('⏱️  Auto-dispense scheduler started'); }, msUntil);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`💊 PillPal Backend running on port ${PORT}`);
