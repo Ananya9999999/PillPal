@@ -322,7 +322,7 @@ dbModule.initDB()
       const msUntil = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
       setTimeout(() => {
         runScheduler();
-        setInterval(runScheduler, 60000);
+        setInterval(runScheduler, 15000);
         console.log('⏱️  Auto-dispense scheduler started');
       }, msUntil);
     });
@@ -398,23 +398,64 @@ function pushEvent(userId, event, data) {
 // ─── AUTO-DISPENSE SCHEDULER ──────────────────────────────────────────────────
 function runScheduler() {
   const now = new Date();
-  const currentTime = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  const currentTime =
+    String(now.getHours()).padStart(2,'0') + ':' +
+    String(now.getMinutes()).padStart(2,'0');
+
   const todayDay = now.getDay() === 0 ? 7 : now.getDay();
   const todayDate = now.toISOString().split('T')[0];
+
   const due = db.prepare(`
     SELECT s.*, m.name AS medication_name, m.dosage, m.unit, m.color, m.user_id
-    FROM schedules s JOIN medications m ON s.medication_id = m.id
-    WHERE s.active = 1 AND m.active = 1 AND s.time = ?
+    FROM schedules s
+    JOIN medications m ON s.medication_id = m.id
+    WHERE s.active = 1 AND m.active = 1
+      AND s.time <= ?
   `).all(currentTime);
+
   for (const s of due) {
     const days = s.days_of_week.split(',').map(Number);
     if (!days.includes(todayDay)) continue;
-    const already = db.prepare(`SELECT id FROM dispense_logs WHERE schedule_id = ? AND DATE(dispensed_at) = ?`).get(s.id, todayDate);
+
+    const already = db.prepare(`
+      SELECT id FROM dispense_logs
+      WHERE schedule_id = ?
+      AND DATE(dispensed_at) = ?
+    `).get(s.id, todayDate);
+
     if (already) continue;
-    const result = db.prepare(`INSERT INTO dispense_logs (medication_id, schedule_id, status, notes) VALUES (?, ?, 'dispensed', 'Auto-dispensed by PillPal')`).run(s.medication_id, s.id);
-    db.prepare(`UPDATE medications SET stock = MAX(0, stock - ?) WHERE id = ?`).run(s.dose_count || 1, s.medication_id);
-    const log = db.prepare(`SELECT l.*, m.name AS medication_name, m.dosage, m.unit, m.color FROM dispense_logs l JOIN medications m ON l.medication_id = m.id WHERE l.id = ?`).get(result.lastInsertRowid);
-    console.log('💊 [' + currentTime + '] Auto-dispensed: ' + s.medication_name + ' for user ' + s.user_id);
-    pushEvent(s.user_id, 'dispensed', { log, medication: { name: s.medication_name, dosage: s.dosage, unit: s.unit, color: s.color }, compartment: s.compartment });
+
+    const result = db.prepare(`
+      INSERT INTO dispense_logs
+      (medication_id, schedule_id, status, notes)
+      VALUES (?, ?, 'dispensed', 'Auto-dispensed by PillPal')
+    `).run(s.medication_id, s.id);
+
+    db.prepare(`
+      UPDATE medications
+      SET stock = MAX(0, stock - ?)
+      WHERE id = ?
+    `).run(s.dose_count || 1, s.medication_id);
+
+    const log = db.prepare(`
+      SELECT l.*, m.name AS medication_name,
+      m.dosage, m.unit, m.color
+      FROM dispense_logs l
+      JOIN medications m ON l.medication_id = m.id
+      WHERE l.id = ?
+    `).get(result.lastInsertRowid);
+
+    console.log(`💊 [${currentTime}] Auto-dispensed: ${s.medication_name}`);
+
+    pushEvent(s.user_id, 'dispensed', {
+      log,
+      medication: {
+        name: s.medication_name,
+        dosage: s.dosage,
+        unit: s.unit,
+        color: s.color
+      },
+      compartment: s.compartment
+    });
   }
 }
