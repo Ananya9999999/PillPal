@@ -418,7 +418,3 @@ function runScheduler() {
     pushEvent(s.user_id, 'dispensed', { log, medication: { name: s.medication_name, dosage: s.dosage, unit: s.unit, color: s.color }, compartment: s.compartment });
   }
 }
-
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`💊 PillPal Backend running on port ${PORT}`);
-});
