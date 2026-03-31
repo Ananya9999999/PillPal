@@ -285,27 +285,63 @@ app.get('/api/dashboard', auth, (req, res) => {
   res.json({ totalMeds, activeSchedules, todayLogs, adherence, upcoming, recentLogs, lowStock, weeklyAdherence });
 });
 
+// ─── DEVICE REGISTER ─────────────────────────────
+app.post('/api/device/register', (req, res) => {
+  const { device_id, device_name } = req.body;
+
+  if (!device_id) {
+    return res.status(400).json({ error: 'device_id required' });
+  }
+
+  const existing = db.prepare(
+    'SELECT * FROM devices WHERE device_id = ?'
+  ).get(device_id);
+
+  if (existing) {
+    return res.json(existing);
+  }
+
+  const result = db.prepare(`
+    INSERT INTO devices (device_id, device_name)
+    VALUES (?, ?)
+  `).run(
+    device_id,
+    device_name || 'PillPal Device'
+  );
+
+  const device = db.prepare(
+    'SELECT * FROM devices WHERE id = ?'
+  ).get(result.lastInsertRowid);
+
+  res.json(device);
+});
+
 // ─── DEVICE STATUS ────────────────────────────────────────────────────────────
 app.get('/api/device', auth, (req, res) => {
   let device = db.prepare('SELECT * FROM device_status WHERE user_id = ?').get(req.user.id);
   if (!device) {
-    db.prepare('INSERT INTO device_status (user_id) VALUES (?)').run(req.user.id);
     device = db.prepare('SELECT * FROM device_status WHERE user_id = ?').get(req.user.id);
   }
   res.json(device);
 });
 
-app.put('/api/device', auth, (req, res) => {
+app.put('/api/device/:device_id', (req, res) => {
   const { connected, battery_level, compartment_status } = req.body;
+
   db.prepare(`
-    UPDATE device_status SET connected=?, battery_level=?, compartment_status=?, last_seen=CURRENT_TIMESTAMP
-    WHERE user_id=?
+    UPDATE devices
+    SET connected = ?,
+        battery_level = ?,
+        compartment_status = ?,
+        last_seen = CURRENT_TIMESTAMP
+    WHERE device_id = ?
   `).run(
-    connected !== undefined ? connected : 0,
-    battery_level || 100,
-    compartment_status ? JSON.stringify(compartment_status) : '{}',
-    req.user.id
+    connected,
+    battery_level,
+    JSON.stringify(compartment_status || {}),
+    req.params.device_id
   );
+
   res.json({ success: true });
 });
 

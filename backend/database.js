@@ -128,16 +128,17 @@ const SCHEMA = `
     dispensed_at DATETIME DEFAULT (datetime('now')),
     FOREIGN KEY (medication_id) REFERENCES medications(id)
   );
-  CREATE TABLE IF NOT EXISTS device_status (
+  CREATE TABLE IF NOT EXISTS devices (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    device_id TEXT DEFAULT 'PILLPAL-001',
+    user_id INTEGER,
+    device_id TEXT UNIQUE,
+    device_name TEXT DEFAULT 'PillPal Device',
     connected INTEGER DEFAULT 0,
     battery_level INTEGER DEFAULT 100,
     compartment_status TEXT DEFAULT '{}',
     last_seen DATETIME DEFAULT (datetime('now')),
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  );
+    created_at DATETIME DEFAULT (datetime('now'))
+);
 `;
 
 async function initDB() {
