@@ -17,7 +17,11 @@ export function useSSE(enabled, handlers) {
     const token = localStorage.getItem('pillpal_token');
     if (!token) return;
 
-    const es = new EventSource(`/api/events?token=${encodeURIComponent(token)}`);
+const API = import.meta.env.VITE_API_URL;
+
+const es = new EventSource(
+  `${API}/api/events?token=${encodeURIComponent(token)}`
+);
     esRef.current = es;
 
     es.onopen = () => console.log('🔌 SSE connected');
