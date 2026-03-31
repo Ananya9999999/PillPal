@@ -14,8 +14,9 @@ app.use(cors({
   origin: [
     'http://localhost:5173',
     'https://pillpal-pro.netlify.app',
-    'https://69cb7e2da6a79f5a9bc1435f--pillpal-pro.netlify.app'
-  ]
+    /\.netlify\.app$/
+  ],
+  credentials: true
 }));
 app.use(express.json());
 
@@ -388,6 +389,14 @@ app.get('/api/events', (req, res) => {
   req.on('close', () => { clearInterval(heartbeat); sseClients.get(uid)?.delete(res); });
 });
 
+function sendAlert(userId, data) {
+  const clients = sseClients.get(userId);
+  if (!clients) return;
+  for (const client of clients) {
+    client.write(`data: ${JSON.stringify(data)}\n\n`);
+  }
+}
+
 function pushEvent(userId, event, data) {
   const clients = sseClients.get(userId);
   if (!clients?.size) return;
@@ -410,7 +419,7 @@ function runScheduler() {
     FROM schedules s
     JOIN medications m ON s.medication_id = m.id
     WHERE s.active = 1 AND m.active = 1
-      AND s.time <= ?
+      AND s.time = ?
   `).all(currentTime);
 
   for (const s of due) {

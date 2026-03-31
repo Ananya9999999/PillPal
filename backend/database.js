@@ -2,7 +2,12 @@ const initSqlJs = require('sql.js');
 const fs = require('fs');
 const path = require('path');
 
-const DB_PATH = path.join(__dirname, 'pillpal.db');
+if (process.env.NODE_ENV === 'production') {
+  console.log('🚀 Running in production mode');
+}
+
+const DB_PATH = process.env.DB_PATH || '/tmp/pillpal.db';
+console.log('📁 Database path:', DB_PATH);
 
 let _rawDb = null;   
 let db = null;      
