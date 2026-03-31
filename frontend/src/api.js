@@ -53,6 +53,8 @@ export const device = {
 export const nextDose = { get: () => api.get('/next-dose') };
 export function createEventSource() {
   const token = localStorage.getItem('pillpal_token');
-  return new EventSource(`${BACKEND}/api/events?token=${encodeURIComponent(token)}`);
+  return new EventSource(
+    `${BACKEND}/api/events?token=${encodeURIComponent(token)}`
+  );
 }
 export default api;
