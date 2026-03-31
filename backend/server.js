@@ -10,7 +10,12 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'pillpal-super-secret-key-2024';
 
-app.use(cors({ origin: ['http://localhost:5173', 'http://localhost:3000'] }));
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    process.env.CORS_ORIGIN || 'https://pillpal-pro.netlify.app'
+  ]
+}));
 app.use(express.json());
 
 // ─── AUTH MIDDLEWARE ──────────────────────────────────────────────────────────
