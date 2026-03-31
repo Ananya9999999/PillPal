@@ -10,6 +10,8 @@ import AlarmBanner from './components/AlarmBanner';
 import { useSSE } from './hooks/useSSE';
 import { useAlarm } from './hooks/useAlarm';
 import { createEventSource } from './api';
+import { ref, onValue } from "firebase/database";
+import { db } from "./firebase";
 
 export const AppContext = createContext({});
 export const useApp = () => useContext(AppContext);
@@ -56,32 +58,19 @@ export default function App() {
     },
   });
 
+const [firebaseAlert, setFirebaseAlert] = useState("");
+
 useEffect(() => {
-  if (!user) return;
+  const alertRef = ref(db, "pillpal/alert");
 
-  const es = createEventSource();
-
-  es.onopen = () => console.log("🔔 Alert system connected");
-
-  es.onmessage = e => {
-    const data = JSON.parse(e.data);
-    console.log("📩 Alert received:", data);
-
-    // Show browser notification
-    if (Notification.permission === "granted") {
-      new Notification("PillPal Reminder", {
-        body: data.message || "Time to take your medicine",
-        icon: "/pill.svg"
-      });
+  onValue(alertRef, (snapshot) => {
+    const data = snapshot.val();
+    if (data) {
+      setFirebaseAlert(data);
+      window.alert(data);
     }
-  };
-
-  es.onerror = err => {
-    console.error("❌ Alert error:", err);
-  };
-
-  return () => es.close();
-}, [user]);
+  });
+}, []);
   // ── Auth helpers ───────────────────────────────────────────────────────────
   const login = (token, userData) => {
     localStorage.setItem('pillpal_token', token);
@@ -115,6 +104,11 @@ useEffect(() => {
         </main>
       </div>
       <Toast toasts={toasts} />
+      {firebaseAlert && (
+        <div className="alert-box">
+          {firebaseAlert}
+        </div>
+      )}
       <AlarmBanner
         event={alarmEvent}
         onDismiss={() => { stopAlarm(); setAlarmEvent(null); }}
@@ -125,3 +119,4 @@ useEffect(() => {
     </AppContext.Provider>
   );
 }
+
