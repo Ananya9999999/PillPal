@@ -13,7 +13,8 @@ const JWT_SECRET = process.env.JWT_SECRET || 'pillpal-super-secret-key-2024';
 app.use(cors({
   origin: [
     'http://localhost:5173',
-    process.env.CORS_ORIGIN || 'https://pillpal-pro.netlify.app'
+    'https://pillpal-pro.netlify.app',
+    'https://69cb7e2da6a79f5a9bc1435f--pillpal-pro.netlify.app'
   ]
 }));
 app.use(express.json());
