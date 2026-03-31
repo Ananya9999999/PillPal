@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BACKEND = 'https://pillpal-production-3752.up.railway.app/';
+const BACKEND = 'https://pillpal-production-3752.up.railway.app';
 
 const api = axios.create({
   baseURL: BACKEND + '/api'
