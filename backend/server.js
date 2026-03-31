@@ -417,3 +417,7 @@ function runScheduler() {
 // Align to the top of each minute
 const msUntil = (60 - new Date().getSeconds()) * 1000 - new Date().getMilliseconds();
 setTimeout(() => { runScheduler(); setInterval(runScheduler, 60000); console.log('⏱️  Auto-dispense scheduler started'); }, msUntil);
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`💊 PillPal Backend running on port ${PORT}`);
+});
